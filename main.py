@@ -8,13 +8,14 @@ last_block_arb_number = 0
 last_block_eth_number = 0
 last_block_bnb_number = 0
 
+
 # Define some helper functions
-def get_wallet_transactions(wallet_address,blockchain):
+def get_wallet_transactions(wallet_address, blockchain):
     if blockchain == 'eth':
         url = f'https://api.etherscan.io/api?module=account&action=txlist&address={wallet_address}&startblock={last_block_eth_number}&endblock=99999999&sort=desc&apikey={ETH_API_KEY}'
-    elif blockchain == 'bnb':
+    elif blockchain == 'bsc':
         url = f'https://api.bscscan.com/api?module=account&action=txlist&address={wallet_address}&startblock={last_block_bnb_number}&endblock=99999999&sort=desc&apikey={BSC_API_KEY}'
-    elif blockchain == 'bnb':
+    elif blockchain == 'arb':
         url = f'https://api.arbiscan.io/api?module=account&action=txlist&address={wallet_address}&startblock={last_block_arb_number}&endblock=99999999&sort=desc&apikey={ARBICAN_API_KEY}'
     else:
         raise ValueError('Invalid blockchain specified')
@@ -30,16 +31,16 @@ def get_wallet_transactions(wallet_address,blockchain):
 
     return result
 
+
 def send_telegram_notification(message, value, usd_value, tx_hash, blockchain):
     if blockchain == 'eth':
         etherscan_link = f'<a href="https://etherscan.io/tx/{tx_hash}">Etherscan</a>'
-    elif blockchain == 'bnb':
+    elif blockchain == 'bsc':
         etherscan_link = f'<a href="https://bscscan.com/tx/{tx_hash}">BscScan</a>'
     elif blockchain == 'arb':
         etherscan_link = f'<a href="https://arbiscan.io/tx/{tx_hash}">ARBISCAN</a>'
     else:
         raise ValueError('Invalid blockchain specified')
-
 
     url = f'https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage'
     payload = {'chat_id': f'{TELEGRAM_CHAT_ID}',
@@ -78,18 +79,18 @@ def get_current_block_number():
 
 def monitor_wallets():
     get_current_block_number()
-    file_path = "watched_wallets.txt"
+    file_path = "log/watched_wallets.txt"
     if not os.path.exists(file_path):
         open(file_path, 'w').close()
 
     latest_tx_hashes = {}
-    latest_tx_hashes_path = "latest_tx_hashes.json"
+    latest_tx_hashes_path = "log/latest_tx_hashes.json"
     if os.path.exists(latest_tx_hashes_path):
         with open(latest_tx_hashes_path, "r") as f:
             latest_tx_hashes = json.load(f)
 
     last_run_time = 0
-    last_run_time_path = "last_run_time.txt"
+    last_run_time_path = "log/last_run_time.txt"
     if os.path.exists(last_run_time_path):
         with open(last_run_time_path, "r") as f:
             last_run_time = int(f.read())
@@ -100,10 +101,9 @@ def monitor_wallets():
             # Read from file
             with open(file_path, 'r') as f:
                 watched_wallets = set(f.read().splitlines())
-
             for wallet in watched_wallets:
                 blockchain, wallet_address = wallet.split(':')
-                transactions = get_wallet_transactions(wallet_address,blockchain)
+                transactions = get_wallet_transactions(wallet_address, blockchain)
                 for tx in transactions:
                     tx_hash = tx['hash']
                     tx_time = int(tx['timeStamp'])
@@ -115,20 +115,19 @@ def monitor_wallets():
                         global last_block_bnb_number
                         if blockchain == "eth":
                             last_block_eth_number = int(tx['blockNumber'])
-                        elif blockchain == "bnb":
+                        elif blockchain == "bsc":
                             last_block_bnb_number = int(tx['blockNumber'])
                         elif blockchain == "arb":
                             last_block_arb_number = int(tx['blockNumber'])
                         else:
                             continue
 
-
                         contract_address = tx['to']
                         method_id = tx['methodId']
                         input = tx['input']
                         behavious = 'BUY'
                         value = float(tx['value']) / 10 ** 18  # Convert from wei to ETH or BNB
-
+                        print(blockchain,contract_address)
                         if contract_address.lower() == ETH_ROUTER_ADDRESS.lower() or contract_address.lower() == BSC_ROUTER_ADDRESS.lower():
                             try:
                                 eth_usd_price = get_eth_price()
@@ -141,7 +140,7 @@ def monitor_wallets():
                             # buy function
                             if method_id == '0xfb3bdb41' or method_id == '0x7ff36ab5' or method_id == '0xb6f9de95':
                                 token_address = '0x' + input[-40:]
-                                token_name = get_tokensymbol(token_address,blockchain)
+                                token_name = get_tokensymbol(token_address, blockchain)
                             # sell function
                             elif method_id == '0x18cbafe5' or method_id == '0x4a25d94a' or method_id == '0x791ac947':
                                 token_address = '0x' + input[-104:-64]
@@ -169,8 +168,8 @@ def monitor_wallets():
                             # buy function
                             token1_addess = input[34:74]
                             token2_addess = input[98:138]
-                            token1_name = get_tokensymbol(token1_addess,blockchain)
-                            token2_name = get_tokensymbol(token2_addess,blockchain)
+                            token1_name = get_tokensymbol(token1_addess, blockchain)
+                            token2_name = get_tokensymbol(token2_addess, blockchain)
 
                             # buy function
                             if token1_name == "WETH":
@@ -224,19 +223,19 @@ def remove_wallet(wallet_address, blockchain):
 def start(update, context):
     message = """
     👋 Welcome to the Ethereum and Binance Wallet Monitoring Bot!
-    
+
     Use /add <blockchain> <wallet_address> to add a new wallet to monitor.
-    
+
     Example: /add ETH 0x123456789abcdef
-    
+
     Use /remove <blockchain> <wallet_address> to stop monitoring a wallet.
-    
+
     Example: /remove ETH 0x123456789abcdef
-    
+
     Use /list <blockchain> to list all wallets being monitored for a specific blockchain.
-    
+
     Example: /list ETH or just /list
-    
+
     Don't forget to star my Github repo if you find this bot useful! https://github.com/cankatx/crypto-wallet-tracker ⭐️
         """
     context.bot.send_message(chat_id=update.message.chat_id, text=message)
@@ -257,7 +256,7 @@ def add(update, context):
             context.bot.send_message(chat_id=update.message.chat_id,
                                      text=f"{wallet_address} is not a valid Ethereum wallet address.")
             return
-    elif blockchain == 'bnb':
+    elif blockchain == 'bsc':
         if not re.match(r'^0x[a-fA-F0-9]{40}$', wallet_address):
             context.bot.send_message(chat_id=update.message.chat_id,
                                      text=f"{wallet_address} is not a valid Binance Smart Chain wallet address.")
@@ -299,7 +298,7 @@ def list_wallets(update, context):
             blockchain, wallet_address = wallet.split(':')
             if blockchain == 'eth':
                 eth_wallets.append(wallet_address)
-            elif blockchain == 'bnb':
+            elif blockchain == 'bsc':
                 bsc_wallets.append(wallet_address)
             elif blockchain == 'arb':
                 arb_wallets.append(wallet_address)
