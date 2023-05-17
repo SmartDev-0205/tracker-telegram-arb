@@ -7,7 +7,7 @@ TELEGRAM_CHAT_ID = '-984543212'
 BLOCKCHAIN_NAME = "ARBITRAM"
 
 # Arbitram network
-ARBICAN_API_KEY = 'CIQC9D6IWVXQ1ZX8MJ53SJTE7JJZM875HE'
+ARBICAN_API_KEY = 'VCBJR8MN74YC5VSUR34E8HYUNJAJXCK9GB'
 ARITRAM_ROUTER_ADDRESS = '0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45'
 ARITRAM_USDT_ADDRESS = '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9'
 ARITRAM_WETH_ADDRESS = '0x82af49447d8a07e3bd95bd0d56f35241523fbab1'
@@ -79,3 +79,12 @@ def get_bnb_price():
     normalizedPrice = bsc_w3.from_wei(price[1], 'Ether') / oneToken
     return Round((normalizedPrice) * 10 ** 18, 2)
 
+
+import sys, os
+
+try:
+    raise NotImplementedError("No error")
+except Exception as e:
+    exc_type, exc_obj, exc_tb = sys.exc_info()
+    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+    print(exc_type, fname, exc_tb.tb_lineno,e)

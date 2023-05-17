@@ -3,6 +3,7 @@ import os.path
 import re
 from util import *
 import requests
+import sys,os
 
 last_block_arb_number = 0
 last_block_eth_number = 0
@@ -11,12 +12,16 @@ last_block_bnb_number = 0
 
 # Define some helper functions
 def get_wallet_transactions(wallet_address, blockchain):
+    # api plan is 5 calls / second
     if blockchain == 'eth':
         url = f'https://api.etherscan.io/api?module=account&action=txlist&address={wallet_address}&startblock={last_block_eth_number}&endblock=99999999&sort=desc&apikey={ETH_API_KEY}'
+        time.sleep(0.2)
     elif blockchain == 'bsc':
         url = f'https://api.bscscan.com/api?module=account&action=txlist&address={wallet_address}&startblock={last_block_bnb_number}&endblock=99999999&sort=desc&apikey={BSC_API_KEY}'
+        time.sleep(0.2)
     elif blockchain == 'arb':
         url = f'https://api.arbiscan.io/api?module=account&action=txlist&address={wallet_address}&startblock={last_block_arb_number}&endblock=99999999&sort=desc&apikey={ARBICAN_API_KEY}'
+        time.sleep(0.2)
     else:
         raise ValueError('Invalid blockchain specified')
 
@@ -198,8 +203,9 @@ def monitor_wallets():
             # Sleep for 10 seconds
             time.sleep(10)
         except Exception as e:
-            print(f'An error occurred: {e}')
-            # Sleep for 10 seconds before trying again
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno, e)
             time.sleep(10)
 
 
